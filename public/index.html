@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Agoda Booking Detector</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f8;
+    --card: #ffffff;
+    --text: #17171a;
+    --muted: #6b6b73;
+    --border: #e4e4e7;
+    --accent: #d6336c;
+    --accent-bg: #fdeef2;
+    --ok-bg: #eef2ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121214;
+      --card: #1c1c1f;
+      --text: #f1f1f3;
+      --muted: #9a9aa2;
+      --border: #2c2c30;
+      --accent: #ff6b9d;
+      --accent-bg: #3a1a26;
+      --ok-bg: #1a1c33;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 24px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .stats { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    min-width: 140px;
+  }
+  .stat .num { font-size: 24px; font-weight: 700; }
+  .stat .label { font-size: 12px; color: var(--muted); }
+  .controls { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+  button, input[type="text"] {
+    font-size: 13px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    background: var(--card);
+    color: var(--text);
+  }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  label.toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 12px; font-size: 13px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
+  tr.agoda { background: var(--accent-bg); }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: white;
+  }
+  .badge.channel { background: var(--ok-bg); color: var(--text); }
+  .empty, .error { color: var(--muted); padding: 20px; text-align: center; }
+  .error { color: var(--accent); }
+  .table-wrap { overflow-x: auto; }
+</style>
+</head>
+<body>
+  <h1>Agoda Booking Detector</h1>
+  <div class="sub">Hostaway reservations flagged as Agoda by matching the guest phone against Agoda's OTA placeholder number.</div>
+
+  <div class="stats">
+    <div class="stat"><div class="num" id="statTotal">–</div><div class="label">Total reservations</div></div>
+    <div class="stat"><div class="num" id="statAgoda">–</div><div class="label">Detected Agoda bookings</div></div>
+  </div>
+
+  <div class="controls">
+    <button class="primary" id="refreshBtn">Refresh</button>
+    <input type="text" id="search" placeholder="Search guest, listing…" />
+    <label class="toggle"><input type="checkbox" id="onlyAgoda" /> Agoda only</label>
+    <span class="sub" id="lastUpdated" style="margin:0"></span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Guest</th>
+          <th>Listing</th>
+          <th>Channel (Hostaway)</th>
+          <th>Check-in</th>
+          <th>Check-out</th>
+          <th>Status</th>
+          <th>Phone</th>
+          <th>Detection</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="emptyState" style="display:none">No reservations found.</div>
+    <div class="error" id="errorState" style="display:none"></div>
+  </div>
+
+<script src="app.js"></script>
+</body>
+</html>
