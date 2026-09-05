@@ -57,7 +57,9 @@ async function loadReservations() {
     allReservations = data.reservations;
     statTotal.textContent = data.total;
     statAgoda.textContent = data.agodaCount;
-    lastUpdated.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+    lastUpdated.textContent = `Updated ${new Date().toLocaleTimeString()}${
+      data.truncated ? " (list capped — very large account, showing a subset)" : ""
+    }`;
     render();
   } catch (err) {
     errorEl.textContent = err.message;

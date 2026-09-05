@@ -24,32 +24,33 @@ app.get("/api/reservations", async (req, res) => {
   }
 
   try {
-    const reservations = await fetchAllReservations({
-      accountId: HOSTAWAY_ACCOUNT_ID,
-      apiKey: HOSTAWAY_API_KEY,
-    });
-
-    const enriched = reservations.map((r) => {
-      const { isAgoda, phone } = isAgodaBooking(r);
-      return {
-        id: r.id,
-        guestName: r.guestName || [r.guestFirstName, r.guestLastName].filter(Boolean).join(" "),
-        listingName: r.listingName || r.listingMapId,
-        channelName: r.channelName || r.channelId,
-        arrivalDate: r.arrivalDate,
-        departureDate: r.departureDate,
-        status: r.status,
-        reservationDate: r.reservationDate,
-        phone,
-        isAgoda,
-      };
-    });
+    const { reservations: enriched, truncated } = await fetchAllReservations(
+      { accountId: HOSTAWAY_ACCOUNT_ID, apiKey: HOSTAWAY_API_KEY },
+      {
+        mapItem: (r) => {
+          const { isAgoda, phone } = isAgodaBooking(r);
+          return {
+            id: r.id,
+            guestName: r.guestName || [r.guestFirstName, r.guestLastName].filter(Boolean).join(" "),
+            listingName: r.listingName || r.listingMapId,
+            channelName: r.channelName || r.channelId,
+            arrivalDate: r.arrivalDate,
+            departureDate: r.departureDate,
+            status: r.status,
+            reservationDate: r.reservationDate,
+            phone,
+            isAgoda,
+          };
+        },
+      }
+    );
 
     const agodaCount = enriched.filter((r) => r.isAgoda).length;
 
     res.json({
       total: enriched.length,
       agodaCount,
+      truncated,
       reservations: enriched,
     });
   } catch (err) {

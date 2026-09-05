@@ -53,18 +53,39 @@ async function getAccessToken({ accountId, apiKey }) {
 // Hard cap so a misbehaving API (ignoring offset, repeating pages, etc.)
 // can never spin this loop into an out-of-memory crash.
 const MAX_PAGES = 200;
+// Overall wall-clock budget: return whatever we have rather than hang the
+// request indefinitely if Hostaway has an unexpectedly large data set.
+const MAX_TOTAL_MS = 45000;
+// Hard cap on total records held in memory. Hostaway reservation objects can
+// carry large nested fields (messages, documents, etc.); accumulating tens
+// of thousands of raw objects is what previously crashed the process with
+// an out-of-memory error. `mapItem` lets the caller slim each record down
+// to only the fields it needs *before* it's added to the accumulator.
+const MAX_RECORDS = 5000;
 
-async function fetchAllReservations({ accountId, apiKey }, { limit = 100 } = {}) {
+async function fetchAllReservations({ accountId, apiKey }, { limit = 100, mapItem = (x) => x } = {}) {
+  const startedAt = Date.now();
+  console.log("[hostaway] requesting access token...");
   const token = await getAccessToken({ accountId, apiKey });
+  console.log("[hostaway] got access token, fetching reservations...");
+
   const reservations = [];
   let offset = 0;
   let lastFirstId = null;
+  let truncated = false;
 
   for (let page = 0; page < MAX_PAGES; page++) {
+    if (Date.now() - startedAt > MAX_TOTAL_MS) {
+      console.log(`[hostaway] hit time budget after ${page} pages, ${reservations.length} reservations`);
+      truncated = true;
+      break;
+    }
+
     const url = new URL(`${HOSTAWAY_BASE_URL}/reservations`);
     url.searchParams.set("limit", String(limit));
     url.searchParams.set("offset", String(offset));
 
+    console.log(`[hostaway] fetching page ${page} (offset ${offset})`);
     let res;
     try {
       res = await fetch(
@@ -89,6 +110,7 @@ async function fetchAllReservations({ accountId, apiKey }, { limit = 100 } = {})
 
     const data = await res.json();
     const items = Array.isArray(data.result) ? data.result : [];
+    console.log(`[hostaway] page ${page} returned ${items.length} items`);
 
     if (items.length === 0) break;
 
@@ -98,7 +120,15 @@ async function fetchAllReservations({ accountId, apiKey }, { limit = 100 } = {})
     if (firstId !== undefined && firstId === lastFirstId) break;
     lastFirstId = firstId;
 
-    reservations.push(...items);
+    for (const item of items) {
+      reservations.push(mapItem(item));
+    }
+
+    if (reservations.length >= MAX_RECORDS) {
+      console.log(`[hostaway] hit record cap (${MAX_RECORDS}), stopping`);
+      truncated = true;
+      break;
+    }
 
     const total = typeof data.count === "number" ? data.count : null;
     if (items.length < limit) break;
@@ -107,7 +137,8 @@ async function fetchAllReservations({ accountId, apiKey }, { limit = 100 } = {})
     offset += limit;
   }
 
-  return reservations;
+  console.log(`[hostaway] done: ${reservations.length} reservations, truncated=${truncated}`);
+  return { reservations, truncated };
 }
 
 module.exports = { fetchAllReservations };
