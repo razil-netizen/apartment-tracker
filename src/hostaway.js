@@ -1,7 +1,12 @@
 const HOSTAWAY_BASE_URL = "https://api.hostaway.com/v1";
+const REQUEST_TIMEOUT_MS = 15000;
 
 let cachedToken = null;
 let cachedTokenExpiresAt = 0;
+
+function withTimeout(options = {}) {
+  return { ...options, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) };
+}
 
 async function getAccessToken({ accountId, apiKey }) {
   const now = Date.now();
@@ -16,14 +21,22 @@ async function getAccessToken({ accountId, apiKey }) {
     scope: "general",
   });
 
-  const res = await fetch(`${HOSTAWAY_BASE_URL}/accessTokens`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Cache-control": "no-cache",
-    },
-    body,
-  });
+  let res;
+  try {
+    res = await fetch(
+      `${HOSTAWAY_BASE_URL}/accessTokens`,
+      withTimeout({
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Cache-control": "no-cache",
+        },
+        body,
+      })
+    );
+  } catch (err) {
+    throw new Error(`Hostaway auth request failed: ${err.name === "TimeoutError" ? "timed out" : err.message}`);
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -52,12 +65,22 @@ async function fetchAllReservations({ accountId, apiKey }, { limit = 100 } = {})
     url.searchParams.set("limit", String(limit));
     url.searchParams.set("offset", String(offset));
 
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Cache-control": "no-cache",
-      },
-    });
+    let res;
+    try {
+      res = await fetch(
+        url,
+        withTimeout({
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Cache-control": "no-cache",
+          },
+        })
+      );
+    } catch (err) {
+      throw new Error(
+        `Hostaway reservations request failed: ${err.name === "TimeoutError" ? "timed out" : err.message}`
+      );
+    }
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
