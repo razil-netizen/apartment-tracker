@@ -37,12 +37,17 @@ async function getAccessToken({ accountId, apiKey }) {
   return cachedToken;
 }
 
+// Hard cap so a misbehaving API (ignoring offset, repeating pages, etc.)
+// can never spin this loop into an out-of-memory crash.
+const MAX_PAGES = 200;
+
 async function fetchAllReservations({ accountId, apiKey }, { limit = 100 } = {}) {
   const token = await getAccessToken({ accountId, apiKey });
   const reservations = [];
   let offset = 0;
+  let lastFirstId = null;
 
-  while (true) {
+  for (let page = 0; page < MAX_PAGES; page++) {
     const url = new URL(`${HOSTAWAY_BASE_URL}/reservations`);
     url.searchParams.set("limit", String(limit));
     url.searchParams.set("offset", String(offset));
@@ -60,10 +65,22 @@ async function fetchAllReservations({ accountId, apiKey }, { limit = 100 } = {})
     }
 
     const data = await res.json();
-    const page = data.result || [];
-    reservations.push(...page);
+    const items = Array.isArray(data.result) ? data.result : [];
 
-    if (page.length < limit) break;
+    if (items.length === 0) break;
+
+    // Some API responses ignore the offset param and just return the first
+    // page again; detect that and stop instead of looping forever.
+    const firstId = items[0] && items[0].id;
+    if (firstId !== undefined && firstId === lastFirstId) break;
+    lastFirstId = firstId;
+
+    reservations.push(...items);
+
+    const total = typeof data.count === "number" ? data.count : null;
+    if (items.length < limit) break;
+    if (total !== null && reservations.length >= total) break;
+
     offset += limit;
   }
 
