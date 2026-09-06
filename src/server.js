@@ -29,10 +29,21 @@ app.get("/api/reservations", async (req, res) => {
       {
         mapItem: (r) => {
           const { isAgoda, phone } = isAgodaBooking(r);
+          const listingName = r.listingName || r.listingMapId;
+          // Hostaway reservation objects don't consistently carry a plain
+          // "city" field across accounts, so fall back to matching the city
+          // name inside whatever address/listing text is present.
+          const city =
+            r.listingCity ||
+            r.city ||
+            r.listingAddressCity ||
+            r.propertyCity ||
+            [listingName, r.listingAddress, r.address].filter(Boolean).join(" ");
           return {
             id: r.id,
             guestName: r.guestName || [r.guestFirstName, r.guestLastName].filter(Boolean).join(" "),
-            listingName: r.listingName || r.listingMapId,
+            listingName,
+            city,
             channelName: r.channelName || r.channelId,
             arrivalDate: r.arrivalDate,
             departureDate: r.departureDate,

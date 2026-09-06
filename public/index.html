@@ -49,7 +49,7 @@
   .stat .num { font-size: 24px; font-weight: 700; }
   .stat .label { font-size: 12px; color: var(--muted); }
   .controls { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
-  button, input[type="text"] {
+  button, input[type="text"], select {
     font-size: 13px;
     border-radius: 8px;
     border: 1px solid var(--border);
@@ -91,6 +91,16 @@
   <div class="controls">
     <button class="primary" id="refreshBtn">Refresh</button>
     <input type="text" id="search" placeholder="Search guest, listing…" />
+    <select id="cityFilter">
+      <option value="all">All cities</option>
+      <option value="dubai">Dubai</option>
+      <option value="abu dhabi">Abu Dhabi</option>
+    </select>
+    <select id="statusFilter">
+      <option value="all">All statuses</option>
+      <option value="confirmed">Confirmed</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
     <label class="toggle"><input type="checkbox" id="onlyAgoda" /> Agoda only</label>
     <span class="sub" id="lastUpdated" style="margin:0"></span>
   </div>
@@ -101,6 +111,7 @@
         <tr>
           <th>Guest</th>
           <th>Listing</th>
+          <th>City</th>
           <th>Channel (Hostaway)</th>
           <th>Check-in</th>
           <th>Check-out</th>

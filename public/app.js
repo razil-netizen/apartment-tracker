@@ -8,6 +8,15 @@ const statAgoda = document.getElementById("statAgoda");
 const lastUpdated = document.getElementById("lastUpdated");
 const searchInput = document.getElementById("search");
 const onlyAgodaInput = document.getElementById("onlyAgoda");
+const cityFilter = document.getElementById("cityFilter");
+const statusFilter = document.getElementById("statusFilter");
+
+function normalizeStatus(status) {
+  const s = (status || "").toLowerCase();
+  if (s.includes("cancel")) return "cancelled";
+  if (s.includes("confirm")) return "confirmed";
+  return s;
+}
 
 function escapeHtml(str) {
   return String(str ?? "").replace(/[&<>"']/g, (c) => (
@@ -18,9 +27,13 @@ function escapeHtml(str) {
 function render() {
   const query = searchInput.value.trim().toLowerCase();
   const onlyAgoda = onlyAgodaInput.checked;
+  const city = cityFilter.value;
+  const status = statusFilter.value;
 
   const filtered = allReservations.filter((r) => {
     if (onlyAgoda && !r.isAgoda) return false;
+    if (city !== "all" && !(r.city || "").toLowerCase().includes(city)) return false;
+    if (status !== "all" && normalizeStatus(r.status) !== status) return false;
     if (!query) return true;
     return (
       (r.guestName || "").toLowerCase().includes(query) ||
@@ -34,6 +47,7 @@ function render() {
     <tr class="${r.isAgoda ? "agoda" : ""}">
       <td>${escapeHtml(r.guestName)}</td>
       <td>${escapeHtml(r.listingName)}</td>
+      <td>${escapeHtml(r.city)}</td>
       <td><span class="badge channel">${escapeHtml(r.channelName)}</span></td>
       <td>${escapeHtml(r.arrivalDate)}</td>
       <td>${escapeHtml(r.departureDate)}</td>
@@ -70,5 +84,7 @@ async function loadReservations() {
 document.getElementById("refreshBtn").addEventListener("click", loadReservations);
 searchInput.addEventListener("input", render);
 onlyAgodaInput.addEventListener("change", render);
+cityFilter.addEventListener("change", render);
+statusFilter.addEventListener("change", render);
 
 loadReservations();
