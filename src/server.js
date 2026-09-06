@@ -41,6 +41,8 @@ app.get("/api/reservations", async (req, res) => {
             [listingName, r.listingAddress, r.address].filter(Boolean).join(" ");
           return {
             id: r.id,
+            reservationCode:
+              r.reservationId || r.confirmationCode || r.hostawayReservationId || r.channelReservationId || r.id,
             guestName: r.guestName || [r.guestFirstName, r.guestLastName].filter(Boolean).join(" "),
             listingName,
             city,

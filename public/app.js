@@ -37,7 +37,8 @@ function render() {
     if (!query) return true;
     return (
       (r.guestName || "").toLowerCase().includes(query) ||
-      (String(r.listingName) || "").toLowerCase().includes(query)
+      (String(r.listingName) || "").toLowerCase().includes(query) ||
+      (String(r.reservationCode) || "").toLowerCase().includes(query)
     );
   });
 
@@ -45,6 +46,7 @@ function render() {
     .map(
       (r) => `
     <tr class="${r.isAgoda ? "agoda" : ""}">
+      <td>${escapeHtml(r.reservationCode)}</td>
       <td>${escapeHtml(r.guestName)}</td>
       <td>${escapeHtml(r.listingName)}</td>
       <td>${escapeHtml(r.city)}</td>
